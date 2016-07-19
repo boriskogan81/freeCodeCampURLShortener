@@ -3,7 +3,7 @@ var mongo = require('mongodb').MongoClient;
 var app = express();
 var url = 'mongodb://localhost:27017/urls';
 
-var count; 
+var count;
 //this is what we will use to increment the new URL number
 function findUrl(x) {mongo.connect(url, function(err, db) { //this function looks up original URLs to see if they're already in our db
       if (err) throw err;
@@ -16,10 +16,10 @@ function findUrl(x) {mongo.connect(url, function(err, db) { //this function look
     db.close();
     return docs;
     });
-}); 
+});
 }
 
-function insertURL(x){mongo.connect(url, function(err, db) { //this function inserts new original  
+function insertURL(x){mongo.connect(url, function(err, db) { //this function inserts new original
       if (err) throw err;
   var urls = db.collection('urls');
   urls.insert(x, function(err, data) {
@@ -27,13 +27,13 @@ function insertURL(x){mongo.connect(url, function(err, db) { //this function ins
     console.log(JSON.stringify(x));
     db.close();
   });
-}); 
+});
 }
-  
+
 var sendObj = {'originalUrl':null, 'newUrl':null};
 
-app.get(('/new/:url'), function (req, res) {
-  var str = req.params.url;
+app.post(('/'), function (req, res) {
+  var str = req.body.url;
   console.log((str));
   sendObj.originalUrl = str;
   if (findUrl(str)){
@@ -51,7 +51,7 @@ app.get(('/:url'), function (req, res) {
   var str = req.params.url;
   console.log((str));
   if (findUrl(str)){
-    res.redirect(findUrl(str).originalUrl); 
+    res.redirect(findUrl(str).originalUrl);
   }
   else
   {
