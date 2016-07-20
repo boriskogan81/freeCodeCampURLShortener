@@ -32,8 +32,8 @@ function insertURL(x){mongo.connect(url, function(err, db) { //this function ins
 
 var sendObj = {'originalUrl':null, 'newUrl':null};
 
-app.post(('/new'+/^\/(.+)/), function (req, res) {
-  var str = req.body.url;
+app.get('/new/:url', function (req, res) {
+  var str = req.query.url;
   console.log((str));
   sendObj.originalUrl = str;
   if (findUrl(str)){
