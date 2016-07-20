@@ -32,7 +32,7 @@ function insertURL(x){mongo.connect(url, function(err, db) { //this function ins
 
 var sendObj = {'originalUrl':null, 'newUrl':null};
 
-app.post(('/'), function (req, res) {
+app.post(('/new'+/^\/(.+)/), function (req, res) {
   var str = req.body.url;
   console.log((str));
   sendObj.originalUrl = str;
