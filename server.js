@@ -6,48 +6,53 @@ var app = express();
 var mongourl = 'mongodb://localhost:27017/urls';
 var favicon = require('serve-favicon');
 var shortid = require('shortid');
+var Q = require('q');
 
 app.use(favicon(__dirname + '/public/images/favicon.ico'));
 
 //this is what we will use to find the URL
 function findUrl(url) {
+  var P = Q.defer();
   mongo.connect(mongourl, function(err, db) {
     if (err) {
     console.error('There was an error', err);
-    return false;
+    P.reject(err);
     }
     //this function looks up original URLs to see if they're already in our db
     var urls = db.collection('urls');
-    urls.find({ shorturl: url }, function(err, docs) {
+    urls.findOne({ shorturl: url }, function(err, docs) {
         if (err) {
-          return 'There was an error returning the urls found in the database!';
+        P.reject(err);
         }
+        P.resolve(docs);
         db.close();
-        return docs;
       });
     });
+    return P.promise;
 }
 
 function insertURL(url){mongo.connect(url, function(err, db) { //this function inserts new original
+  var P = Q.defer();
   if (err) {
     console.error('There was an error setting up the insertURL connection!', err);
-    return;
+    P.reject(err);
   }
   console.log('inserting ' + url + ' into the database');
   var urls = db.collection('urls');
   urls.insert(url, function(err, data) {
     if (err) {
     console.error('There was an error running the insertURL function!', err);
-    return;
+    P.reject(err);
   }
     console.log('inserted ' + JSON.stringify(url) + 'into the url database');
     db.close();
+    P.resolve();
   });
 });
 }
 
 
-app.post('/new/', jsonParser, function (req, res) {
+app.post('/new/:url', jsonParser, function (req, res) {
   var original = req.body.original;
   var result = {};
   result.original = original;
@@ -57,20 +62,21 @@ app.post('/new/', jsonParser, function (req, res) {
   } else {
     res.status(400).send(result);
   }
-
 });
 
 app.get('/:url', function (req, res) {
+  var P = Q.defer();
   var str = req.params.url;
   console.log((str));
-  if (findUrl(str)){
-    console.log('urlString found, redirecting');
-    res.redirect(findUrl(str).original);
-  }
-  else
-  {
-    res.send('URL not found. Please try with a different URL, or go to '+ req.baseUrl + '/new/ and add a new URL to be shortened.');
-  }
+  findUrl(str)
+  .then( function(docs){
+     console.log('urlString found, redirecting');
+     res.redirect(docs.original);
+  })
+  .catch(function(err){
+      console.error('There was an error redirecting to the original URL:', err);
+      P.reject(err);
+  });
 });
 
 app.listen(8080, function () {
