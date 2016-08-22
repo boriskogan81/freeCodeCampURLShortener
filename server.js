@@ -7,76 +7,59 @@ var mongourl = 'mongodb://localhost:27017/urls';
 var favicon = require('serve-favicon');
 var shortid = require('shortid');
 var Q = require('q');
+var config = require('./config');
+var base58 = require('./base58.js');
+var mongoose = require('mongoose');
+var Url = require('./models/url');
+var path = require('path');
 
-app.use(favicon(__dirname + '/public/images/favicon.ico'));
+mongoose.connect('mongodb://' + config.db.host + '/' + config.db.name);
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-//this is what we will use to find the URL
-function findUrl(url) {
-  var P = Q.defer();
-  mongo.connect(mongourl, function(err, db) {
-    if (err) {
-    console.error('There was an error', err);
-    P.reject(err);
-    }
-    //this function looks up original URLs to see if they're already in our db
-    var urls = db.collection('urls');
-    urls.findOne({ shorturl: url }, function(err, docs) {
-        if (err) {
-        P.reject(err);
+app.post('/api/shorten', jsonParser, function (req, res) {
+    var longUrl = req.body.url;
+    var shortUrl = '';
+  
+    Url.findOne ({long_url : longUrl}, function(err, doc){
+      if (err){
+          console.log(err);
         }
-        P.resolve(docs);
-        db.close();
-      });
-    });
-    return P.promise;
-}
-
-function insertURL(url){mongo.connect(url, function(err, db) { //this function inserts new original
-  var P = Q.defer();
-  if (err) {
-    console.error('There was an error setting up the insertURL connection!', err);
-    P.reject(err);
+      if(doc){
+          shortUrl = config.webhost + base58.encode(doc._id);
+          res.send({'shortUrl' : shortUrl});
+      }
+      else{
+          var newUrl = Url({
+             long_url: longUrl 
+          });
+          
+          newUrl.save(function(err){
+              if(err){
+              console.log(err);
+              }
+              shortUrl = config.webhost +base58.encode(newUrl._id);
+              res.send({'shortUrl': shortUrl});
+          });
+      }
   }
-  console.log('inserting ' + url + ' into the database');
-  var urls = db.collection('urls');
-  urls.insert(url, function(err, data) {
-    if (err) {
-    console.error('There was an error running the insertURL function!', err);
-    P.reject(err);
-  }
-    console.log('inserted ' + JSON.stringify(url) + 'into the url database');
-    db.close();
-    P.resolve();
-  });
-});
-}
-
-
-app.post('/new/:url', jsonParser, function (req, res) {
-  var original = req.body.original;
-  var result = {};
-  result.original = original;
-  result.shorturl = shortid.generate();
-  if (insertURL(result)) {
-    res.send(result);
-  } else {
-    res.status(400).send(result);
-  }
+  );
 });
 
 app.get('/:url', function (req, res) {
-  var P = Q.defer();
-  var str = req.params.url;
-  console.log((str));
-  findUrl(str)
-  .then( function(docs){
-     console.log('urlString found, redirecting');
-     res.redirect(docs.original);
-  })
-  .catch(function(err){
-      console.error('There was an error redirecting to the original URL:', err);
-      P.reject(err);
-  });
+    var base58Id = req.params.url;
+    var id = base58.decode(base58Id);
+    Url.findOne({'_id' : id}, function (err, doc){
+        if (err){
+        console.log(err);
+        }
+        if (doc){
+            res.redirect(doc.long_url);
+        }else{
+            res.redirect(config.webhost);
+        }
+    });
 });
 
 app.listen(8080, function () {
