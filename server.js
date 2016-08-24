@@ -18,8 +18,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.post('/api/shorten', jsonParser, function (req, res) {
-    var longUrl = req.body.url;
+app.post('/api/shorten/:longUrl', jsonParser, function (req, res) {
+    var longUrl = req.params.url;
     var shortUrl = '';
   
     Url.findOne ({long_url : longUrl}, function(err, doc){
