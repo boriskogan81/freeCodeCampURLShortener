@@ -15,11 +15,10 @@ var path = require('path');
 
 mongoose.connect('mongodb://' + config.db.host + '/' + config.db.name);
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+var textParser = bodyParser.text();
 
-app.post('/api/shorten/:longUrl', function (req, res) {
-    var longUrl = req.params.longUrl;
+app.post('/api', textParser, function (req, res) {
+    var longUrl = req.body;
     var shortUrl = '';
   
     Url.findOne ({long_url : longUrl}, function(err, doc){
@@ -47,7 +46,7 @@ app.post('/api/shorten/:longUrl', function (req, res) {
   );
 });
 
-app.get('/:url', function (req, res) {
+app.get('/shorturl/:url', function (req, res) {
     var base58Id = req.params.url;
     var id = base58.decode(base58Id);
     Url.findOne({'_id' : id}, function (err, doc){
