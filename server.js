@@ -12,13 +12,14 @@ var base58 = require('./base58.js');
 var mongoose = require('mongoose');
 var Url = require('./models/url');
 var path = require('path');
-
+//change base URL to /config.webhost/ 
 mongoose.connect('mongodb://' + config.db.host + '/' + config.db.name);
 app.use(express.static(path.join(__dirname, 'public')));
 var textParser = bodyParser.text();
+var baseURL = 'https://baruch-free-code-camp-baruchkogan.c9users.io/shorturl/';
 
-app.post('/api', textParser, function (req, res) {
-    var longUrl = req.body;
+app.get('/api/:url', textParser, function (req, res) {
+    var longUrl = req.params.url;
     var shortUrl = '';
   
     Url.findOne ({long_url : longUrl}, function(err, doc){
@@ -26,7 +27,7 @@ app.post('/api', textParser, function (req, res) {
           console.log(err);
         }
       if(doc){
-          shortUrl = config.webhost + base58.encode(doc._id);
+          shortUrl = baseURL + base58.encode(doc._id);
           res.send({'shortUrl' : shortUrl});
       }
       else{
@@ -38,7 +39,7 @@ app.post('/api', textParser, function (req, res) {
               if(err){
               console.log(err);
               }
-              shortUrl = config.webhost +base58.encode(newUrl._id);
+              shortUrl = baseURL +base58.encode(newUrl._id);
               res.send({'shortUrl': shortUrl});
           });
       }
